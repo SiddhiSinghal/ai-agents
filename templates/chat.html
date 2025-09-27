@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat</title>
+</head>
+<body>
+  <h2>Chat with Career Assistant</h2>
+  <div id="chat-box"></div>
+  <input type="text" id="user-input" placeholder="Type your message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const message = input.value;
+
+      // Append user message
+      document.getElementById("chat-box").innerHTML += `<p><b>You:</b> ${message}</p>`;
+      input.value = "";
+
+      // Send to backend
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+      if (data.reply) {
+        document.getElementById("chat-box").innerHTML += `<p><b>Bot:</b> ${data.reply}</p>`;
+      } else {
+        document.getElementById("chat-box").innerHTML += `<p><b>Error:</b> ${data.error}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

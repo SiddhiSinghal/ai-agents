@@ -1,41 +1,40 @@
-import subprocess, random
+# agents/coding_test.py
+import random, subprocess, os, shlex
 
-questions = [
+QUESTIONS = [
     "Reverse a string.",
-    "Check if a number is a prime number.",
-    "Find factorial of a number.",
-    "Check if a number is palindrome."
+    "Check if a number is prime.",
+    "Print the first n Fibonacci numbers.",
+    "Find factorial of a number."
 ]
 
-expected_outputs = {
+EXPECTED = {
     "Reverse a string.": "gnirts",
-    "Check if a number is a prime number.": "Prime",
+    "Check if a number is prime.": "Prime",
     "Find factorial of a number.": "120",
-    "Check if a number is palindrome.": "Palindrome"
+    "Print the first n Fibonacci numbers.": "0 1 1 2 3"
 }
 
 def get_random_question():
-    question = random.choice(questions)
-    return question
+    return random.choice(QUESTIONS)
 
-def evaluate_code(user_code, question, custom_input=""):
-    output, marks = "", 0
+def evaluate_code(code_text: str, question: str, custom_input: str = ""):
+    """
+    Writes code_text to user_code.cpp, tries to compile and run (requires g++).
+    Returns (output, marks)
+    """
+    fname = "user_code.cpp"
+    out_exe = "./user_code.out"
     try:
-        with open("user_code.cpp","w") as f:
-            f.write(user_code)
-
-        compile_result = subprocess.run(["g++","user_code.cpp","-o","user_code.out"], capture_output=True, text=True)
-        if compile_result.returncode !=0:
-            output = compile_result.stderr
-        else:
-            run_result = subprocess.run(["./user_code.out"], input=custom_input.strip(), capture_output=True, text=True, timeout=5)
-            output = run_result.stdout.strip()
-            if output == expected_outputs.get(question,""):
-                marks=100
-            else:
-                marks=50
-    except subprocess.TimeoutExpired:
-        output="Time Limit Exceeded"
+        with open(fname, "w") as f:
+            f.write(code_text)
+        compile_cmd = ["g++", fname, "-o", "user_code.out"]
+        cp = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=20)
+        if cp.returncode != 0:
+            return (cp.stderr, 0)
+        run = subprocess.run([out_exe], input=custom_input, capture_output=True, text=True, timeout=5)
+        output = run.stdout.strip()
+        marks = 100 if output == EXPECTED.get(question, "") else 50
+        return (output, marks)
     except Exception as e:
-        output=str(e)
-    return output, marks
+        return (str(e), 0)

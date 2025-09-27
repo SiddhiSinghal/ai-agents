@@ -1,5 +1,4 @@
 # orchestrator.py
-import sys
 from agents import (
     career_exploration,
     roadmap,
@@ -10,72 +9,65 @@ from agents import (
     communication_test
 )
 
-def main():
-    print("Welcome to the Career Guidance Multi-Agent System!")
-    print("Type 'exit' to quit.\n")
+def decide_and_call(message: str, user_scores=None):
+    """
+    message: user input string
+    user_scores: dict or None
+    Returns: dict with keys: 'type' and 'payload' (payload can be dict or string)
+    """
+    m = message.lower().strip()
 
-    while True:
-        user_input = input("You: ").strip().lower()
-        if user_input in ["exit", "quit"]:
-            print("Goodbye!")
-            break
+    # Career exploration
+    if m.startswith("tell me about") or "tell me about" in m or m.startswith("career") or "career" in m:
+        # parse the career name
+        parts = message.split("about", 1)
+        target = parts[1].strip() if len(parts) > 1 else message
+        payload = career_exploration.get_career_info(target)
+        return {"type": "career", "payload": payload}
 
-        # Decide which agent to call based on keywords
-        if "career" in user_input or "explore" in user_input:
-            career_name = input("Enter the career you want info on: ")
-            info = career_exploration.get_career_info(career_name)
-            print("\nCareer Exploration Result:")
-            print(info)
-
-        elif "roadmap" in user_input or "plan" in user_input:
-            job_role = input("Enter the job role you want a roadmap for: ")
-            weeks = input("How many weeks to complete? (default 10): ")
-            weeks = int(weeks) if weeks.isdigit() else 10
-            user_scores = {}  # Fake or random scores for demo
-            for field in ['DSA','DBMS','OS','CN','Mathmetics','Aptitute','Comm','Problem_Solving','Creative','Hackathons']:
-                user_scores[field] = 50  # Example: 50% in everything
-            roadmap_data = roadmap.get_roadmap(job_role, user_scores, weeks)
-            print("\nRoadmap:")
-            for step, details in roadmap_data.items():
-                print(f"{step}: {details}")
-
-        elif "job" in user_input or "recommendation" in user_input:
-            print("Simulating Job Recommendation based on fake scores...")
-            user_data = [50]*10
-            top_jobs = job_recommendation.predict_jobs(user_data)
-            print("Top Recommended Jobs:", top_jobs)
-
-        elif "coding" in user_input or "programming" in user_input:
-            question = coding_test.get_random_question()
-            print("Coding Question:", question)
-            code = input("Enter your solution (or skip): ")
-            if code.strip():
-                output, marks = coding_test.evaluate_code(code, question)
-                print(f"Output:\n{output}\nMarks: {marks}")
-
-        elif "aptitude" in user_input or "quiz" in user_input:
-            questions = aptitude_test.get_random_questions()
-            score = 0
-            for q in questions:
-                ans = input(f"{q['question']} = ")
-                if ans.strip() == q['answer']:
-                    score += 10
-            print(f"Aptitude Test Score: {score}/{len(questions)*10}")
-
-        elif "creativity" in user_input or "story" in user_input:
-            prompt = creativity_test.get_prompt()
-            print("Story Prompt:", prompt)
-            story = input("Write your story: ")
-            feedback, score = creativity_test.get_feedback(story)
-            print(f"Creativity Test Feedback: {feedback}")
-
-        elif "communication" in user_input or "text" in user_input:
-            text = input("Enter a sample text to assess: ")
-            feedback, score = communication_test.assess_communication(text)
-            print(f"Communication Test Feedback: {feedback}")
-
+    # Roadmap
+    if "how to become" in m or "roadmap" in m or "plan to become" in m or m.startswith("how to"):
+        # extract role
+        for phrase in ["how to become", "roadmap to become", "roadmap for", "how to"]:
+            if phrase in m:
+                role = m.split(phrase,1)[1].strip()
+                break
         else:
-            print("Sorry, I couldn't understand. Try keywords like 'career', 'roadmap', 'job', 'coding', 'aptitude', 'creativity', 'communication'.")
+            role = message
+        payload = roadmap.get_roadmap(role, user_scores or {}, weeks=10)
+        return {"type": "roadmap", "payload": payload}
 
-if __name__ == "__main__":
-    main()
+    # Job recommendation
+    if "recommend" in m or "suggest job" in m or "which job" in m or "job for me" in m:
+        # build list
+        vals = None
+        if isinstance(user_scores, dict):
+            # convert to list in expected order
+            order = ['DSA','DBMS','OS','CN','Mathmetics','Aptitute','Comm','Problem_Solving','Creative','Hackathons']
+            vals = [user_scores.get(k,0) for k in order]
+        else:
+            vals = [50]*10
+        payload = job_recommendation.predict_jobs_from_list(vals)
+        return {"type": "job_recommendation", "payload": payload}
+
+    # Coding
+    if "coding" in m or "program" in m or "challenge" in m or "coding question" in m:
+        q = coding_test.get_random_question()
+        return {"type": "coding_question", "payload": {"question": q}}
+
+    # Aptitude
+    if "aptitude" in m or "aptitude question" in m or "test" in m:
+        qlist = aptitude_test.get_random_questions(n=5)
+        return {"type": "aptitude", "payload": qlist}
+
+    # Creativity
+    if m.startswith("creativity:") or "creativity" in m or "write a story" in m:
+        prompt = creativity_test.get_prompt()
+        return {"type": "creativity_prompt", "payload": {"prompt": prompt}}
+
+    # Communication
+    if "communication" in m or "assess my" in m or m.startswith("communication:"):
+        return {"type": "communication_prompt", "payload": {"prompt": "Write a short paragraph or email for assessment."}}
+
+    # fallback
+    return {"type": "unknown", "payload": "Sorry, I couldn't understand. Try asking 'Tell me about Data Scientist' or 'How to become Data Scientist' or 'Give me a coding question'."}
