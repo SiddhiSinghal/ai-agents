@@ -15,10 +15,9 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
-
-# Database setup
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///career_guidance.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://siddhi:yourpassword@localhost:5432/ai_agents"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db.init_app(app)
 
 login_manager = LoginManager()
