@@ -23,7 +23,7 @@ def recommend_jobs():
     )
 
     if not latest:
-        return f"Hey {current_user.name}, please submit your scores first."
+        return []  # return empty list if no scores
 
     features = [
         latest.dsa, latest.dbms, latest.os,
@@ -45,8 +45,5 @@ def recommend_jobs():
         pred = model.predict(features_df)
         top_3_jobs = encoder.inverse_transform(pred).tolist()
 
-    # Format message for chat
-    response = ""
-    for i, job in enumerate(top_3_jobs, 1):
-        response += f"{i}. {job}\n"
-    return response
+    # ✅ Return a list instead of formatted string
+    return top_3_jobs

@@ -97,6 +97,7 @@ def submit_scores():
     # Format nicely for HTML
     top_jobs_str = "<br>".join([f"{i+1}. {job}" for i, job in enumerate(top_jobs)])
 
+
     initial_message = f"Hello, {current_user.name} 👋<br>Based on your scores, here are your top 3 job recommendations:<br>{top_jobs_str}<br><br>You can now ask about any job or request a roadmap."
 
     # Render chat page and send initial message
